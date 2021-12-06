@@ -53,15 +53,23 @@ func resourceVSphereTagCreate(d *schema.ResourceData, meta interface{}) error {
 		Description: d.Get("description").(string),
 		Name:        d.Get("name").(string),
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), defaultAPITimeout)
 	defer cancel()
-	id, err := tm.CreateTag(ctx, spec)
+
+	// Check if already exists
+	id, err := tagByName(tm, spec.Name, spec.CategoryID)
 	if err != nil {
-		return fmt.Errorf("could not create tag: %s", err)
+		id, err = tm.CreateTag(ctx, spec)
+		if err != nil {
+			return fmt.Errorf("could not create tag: %s", err)
+		}
 	}
+
 	if id == "" {
 		return errors.New("no ID was returned")
 	}
+
 	d.SetId(id)
 	return resourceVSphereTagRead(d, meta)
 }
